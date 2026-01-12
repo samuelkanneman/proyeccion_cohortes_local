@@ -216,7 +216,7 @@ Para issues o preguntas:
 
 ## 📄 Licencia
 
-Este proyecto es de uso interno para CONMEGA ACE - Credit Management Department.
+Este proyecto es de uso interno - Credit Management.
 
 ---
 
