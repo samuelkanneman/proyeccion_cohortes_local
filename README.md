@@ -220,7 +220,7 @@ Este proyecto es de uso interno para CONMEGA ACE - Credit Management Department.
 
 ---
 
-**Desarrollado para:** CONMEGA ACE  
+**Desarrollado por:** Kanneman, Samuel 
 **Versión:** 1.0.0  
 **Última actualización:** Enero 2026  
 **Contacto:** Samuel - Data Scientist Credit Specialist
