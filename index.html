@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyección de Mora - Chain Ladder</title>
+    
+    <!-- PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    
+    <!-- Plotly para visualizaciones -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <!-- Estilos personalizados -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1><i class="fas fa-chart-line"></i> Proyección de Mora - Chain Ladder</h1>
+            <p class="subtitle">Procesamiento 100% local - Tus datos nunca salen de tu navegador 🔒</p>
+        </header>
+
+        <!-- Instrucciones iniciales -->
+        <div id="instructions" class="card">
+            <h2><i class="fas fa-info-circle"></i> Instrucciones</h2>
+            <div class="instructions-content">
+                <h3>Formato del archivo CSV:</h3>
+                <ul>
+                    <li><strong>Separador:</strong> punto y coma (;)</li>
+                    <li><strong>Primera columna:</strong> cohortes (formato YYYY-MM)</li>
+                    <li><strong>Primera fila:</strong> períodos (formato YYYY-MM)</li>
+                    <li><strong>Valores:</strong> mora >90d en formato porcentaje</li>
+                </ul>
+                
+                <h3>Ejemplo:</h3>
+                <pre>;2023-01;2023-02;2023-03
+2023-01;5,2%;8,1%;10,5%
+2023-02;;6,3%;9,2%</pre>
+                
+                <h3>Cómo funciona:</h3>
+                <ol>
+                    <li>Carga tu archivo CSV</li>
+                    <li>Selecciona la cohorte a proyectar</li>
+                    <li>Define hasta qué MOB proyectar</li>
+                    <li>Visualiza resultados y descarga</li>
+                </ol>
+                
+                <div class="security-note">
+                    <i class="fas fa-shield-alt"></i> <strong>Seguridad:</strong> 
+                    Todo el procesamiento se realiza en tu navegador. Los datos nunca se envían a ningún servidor.
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de carga -->
+        <div class="card">
+            <h2><i class="fas fa-upload"></i> 1. Cargar Archivo CSV</h2>
+            <div class="upload-section">
+                <input type="file" id="csvFile" accept=".csv" class="file-input">
+                <label for="csvFile" class="file-label">
+                    <i class="fas fa-cloud-upload-alt"></i> Seleccionar archivo CSV
+                </label>
+                <div id="fileStatus" class="file-status"></div>
+            </div>
+        </div>
+
+        <!-- Panel de configuración -->
+        <div id="configPanel" class="card" style="display: none;">
+            <h2><i class="fas fa-sliders-h"></i> 2. Configuración de Proyección</h2>
+            
+            <div class="config-grid">
+                <div class="config-item">
+                    <label for="cohorteSelect">
+                        <i class="fas fa-calendar"></i> Cohorte a proyectar:
+                    </label>
+                    <select id="cohorteSelect" class="select-input"></select>
+                </div>
+                
+                <div class="config-item">
+                    <label for="mobSlider">
+                        <i class="fas fa-chart-bar"></i> Proyectar hasta MOB:
+                    </label>
+                    <div class="slider-container">
+                        <input type="range" id="mobSlider" class="slider" min="1" max="24" value="12">
+                        <span id="mobValue" class="slider-value">12</span>
+                    </div>
+                    <small id="mobInfo" class="slider-info"></small>
+                </div>
+            </div>
+            
+            <button id="projectBtn" class="btn-primary">
+                <i class="fas fa-rocket"></i> Proyectar
+            </button>
+        </div>
+
+        <!-- Loading spinner -->
+        <div id="loadingSpinner" class="spinner" style="display: none;">
+            <div class="spinner-icon"></div>
+            <p>Procesando datos...</p>
+        </div>
+
+        <!-- Panel de resultados -->
+        <div id="resultsPanel" style="display: none;">
+            
+            <!-- Métricas -->
+            <div class="card">
+                <h2><i class="fas fa-tachometer-alt"></i> 3. Resumen de Proyección</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Cohorte</div>
+                        <div class="metric-value" id="metricCohorte">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">MOB Actual</div>
+                        <div class="metric-value" id="metricMobActual">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Mora Actual</div>
+                        <div class="metric-value" id="metricMoraActual">-</div>
+                        <div class="metric-delta" id="metricDelta">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Proyección Final</div>
+                        <div class="metric-value" id="metricProyFinal">-</div>
+                        <div class="metric-sublabel" id="metricFecha">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="visualizaciones">
+                        <i class="fas fa-chart-area"></i> Visualizaciones
+                    </button>
+                    <button class="tab-button" data-tab="tabla">
+                        <i class="fas fa-table"></i> Tabla Detallada
+                    </button>
+                    <button class="tab-button" data-tab="factores">
+                        <i class="fas fa-calculator"></i> Factores
+                    </button>
+                    <button class="tab-button" data-tab="exportar">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+
+                <!-- Tab Content: Visualizaciones -->
+                <div id="tab-visualizaciones" class="tab-content active">
+                    <h3>Proyección vs Histórico</h3>
+                    <div id="plotProyeccion" class="plot-container"></div>
+                    
+                    <h3>Comparación Observado vs Proyectado</h3>
+                    <div id="plotBarras" class="plot-container"></div>
+                </div>
+
+                <!-- Tab Content: Tabla -->
+                <div id="tab-tabla" class="tab-content">
+                    <h3>Proyección Detallada</h3>
+                    <div id="tablaDetallada" class="table-container"></div>
+                    
+                    <h3>Resumen Mensual - Proyección</h3>
+                    <div id="tablaResumen" class="table-container"></div>
+                </div>
+
+                <!-- Tab Content: Factores -->
+                <div id="tab-factores" class="tab-content">
+                    <h3>Factores de Desarrollo Históricos</h3>
+                    <div id="plotFactores" class="plot-container"></div>
+                    
+                    <h3>Detalle de Factores</h3>
+                    <div id="tablaFactores" class="table-container"></div>
+                </div>
+
+                <!-- Tab Content: Exportar -->
+                <div id="tab-exportar" class="tab-content">
+                    <h3>Exportar Resultados</h3>
+                    <div class="export-buttons">
+                        <button id="exportCsv" class="btn-secondary">
+                            <i class="fas fa-file-csv"></i> Descargar CSV
+                        </button>
+                        <button id="exportExcel" class="btn-secondary">
+                            <i class="fas fa-file-excel"></i> Descargar Excel
+                        </button>
+                    </div>
+                    
+                    <h3>Preview de Datos</h3>
+                    <div id="tablaExport" class="table-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>
+            <i class="fas fa-code"></i> Desarrollado para CONMEGA ACE - Credit Management Department | 
+            <i class="fas fa-shield-alt"></i> Procesamiento 100% local y seguro
+        </p>
+    </footer>
+
+    <!-- PyScript -->
+    <script type="py" src="./app.py" config="./pyscript.toml"></script>
+    
+    <!-- JavaScript para UI -->
+    <script src="script.js"></script>
+</body>
+</html>
