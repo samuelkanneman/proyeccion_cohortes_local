@@ -1,18 +1,4 @@
 name = "Proyección de Mora - Chain Ladder"
 description = "Aplicación para proyectar mora usando Chain Ladder"
-version = "1.0.0"
-author = "CONMEGA ACE"
 
-[files]
-# Archivos Python de la aplicación
-"./app.py" = "./app.py"
-
-# Paquetes necesarios de PyPI
-packages = [
-    "pandas",
-    "numpy"
-]
-
-[splashscreen]
-enabled = true
-autoclose = true
+packages = ["pandas", "numpy"]
