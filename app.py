@@ -6,8 +6,8 @@ Procesamiento 100% en el navegador usando PyScript.
 
 import pandas as pd
 import numpy as np
-from js import document, window, Blob, URL, console
-from pyodide.ffi import create_proxy
+from js import document, window, Blob, URL, console, Object as JsObject
+from pyodide.ffi import create_proxy, to_js
 import json
 import io
 
@@ -39,6 +39,7 @@ def load_data_from_text(text_content):
     """Carga datos desde texto CSV"""
     try:
         df = pd.read_csv(io.StringIO(text_content), sep=';', index_col=0, encoding='utf-8-sig')
+        # Usar applymap (compatible con pandas en PyScript/Pyodide)
         df = df.applymap(parse_pct)
         return df, None
     except Exception as e:
@@ -205,7 +206,7 @@ def create_projection_plot():
         'template': 'plotly_white'
     }
     
-    window.Plotly.newPlot('plotProyeccion', traces, layout)
+    window.Plotly.newPlot('plotProyeccion', to_js(traces, dict_converter=JsObject.fromEntries), to_js(layout, dict_converter=JsObject.fromEntries))
 
 
 def create_bar_chart():
@@ -240,7 +241,7 @@ def create_bar_chart():
         'barmode': 'group'
     }
     
-    window.Plotly.newPlot('plotBarras', traces, layout)
+    window.Plotly.newPlot('plotBarras', to_js(traces, dict_converter=JsObject.fromEntries), to_js(layout, dict_converter=JsObject.fromEntries))
 
 
 def create_factors_plot():
@@ -289,7 +290,7 @@ def create_factors_plot():
         }]
     }
     
-    window.Plotly.newPlot('plotFactores', traces, layout)
+    window.Plotly.newPlot('plotFactores', to_js(traces, dict_converter=JsObject.fromEntries), to_js(layout, dict_converter=JsObject.fromEntries))
 
 
 # ============================================================
