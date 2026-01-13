@@ -39,11 +39,7 @@ def load_data_from_text(text_content):
     """Carga datos desde texto CSV"""
     try:
         df = pd.read_csv(io.StringIO(text_content), sep=';', index_col=0, encoding='utf-8-sig')
-        # Compatible con pandas < 2.1 (applymap) y >= 2.1 (map)
-        try:
-            df = df.map(parse_pct)
-        except AttributeError:
-            df = df.applymap(parse_pct)
+        df = df.applymap(parse_pct)
         return df, None
     except Exception as e:
         return None, str(e)
