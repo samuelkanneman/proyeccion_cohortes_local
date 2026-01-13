@@ -39,7 +39,11 @@ def load_data_from_text(text_content):
     """Carga datos desde texto CSV"""
     try:
         df = pd.read_csv(io.StringIO(text_content), sep=';', index_col=0, encoding='utf-8-sig')
-        df = df.map(parse_pct)
+        # Compatible con pandas < 2.1 (applymap) y >= 2.1 (map)
+        try:
+            df = df.map(parse_pct)
+        except AttributeError:
+            df = df.applymap(parse_pct)
         return df, None
     except Exception as e:
         return None, str(e)
@@ -437,58 +441,76 @@ def update_metrics():
 
 def handle_file_upload(event):
     """Maneja la carga de archivo CSV"""
+    console.log('📁 Archivo seleccionado...')
+    
     file = event.target.files.item(0)
     if not file:
+        console.log('❌ No se seleccionó archivo')
         return
     
+    console.log(f'📄 Leyendo: {file.name}')
     file_reader = window.FileReader.new()
     
     def on_load(e):
-        text_content = e.target.result
-        
-        # Cargar datos
-        df, error = load_data_from_text(text_content)
-        
-        if error:
+        try:
+            console.log('📖 Archivo leído, procesando...')
+            text_content = e.target.result
+            
+            # Cargar datos
+            df, error = load_data_from_text(text_content)
+            
+            if error:
+                status = document.getElementById('fileStatus')
+                status.textContent = f'❌ Error: {error}'
+                status.className = 'file-status error'
+                console.log(f'❌ Error parsing: {error}')
+                return
+            
+            console.log(f'✅ CSV parseado: {len(df)} cohortes')
+            
+            # Guardar en store
+            data_store['df'] = df
+            data_store['df_mob'] = create_mob_dataframe(df)
+            data_store['df_pivot'] = data_store['df_mob'].pivot(
+                index='cohorte', columns='mob', values='mora_pct'
+            )
+            data_store['factors'], data_store['factors_detail'] = calculate_development_factors(
+                data_store['df_pivot']
+            )
+            
+            console.log(f'✅ Factores calculados: {len(data_store["factors"])} MOBs')
+            
+            # Actualizar UI
             status = document.getElementById('fileStatus')
-            status.textContent = f'❌ Error: {error}'
+            status.textContent = f'✓ Archivo cargado: {file.name} ({len(df)} cohortes)'
+            status.className = 'file-status success'
+            
+            # Ocultar instrucciones
+            document.getElementById('instructions').style.display = 'none'
+            
+            # Mostrar panel de configuración
+            config_panel = document.getElementById('configPanel')
+            config_panel.style.display = 'block'
+            
+            # Poblar selector de cohortes
+            cohorte_select = document.getElementById('cohorteSelect')
+            cohortes = sorted(df.index.tolist(), reverse=True)
+            cohorte_select.innerHTML = ''
+            for c in cohortes:
+                option = document.createElement('option')
+                option.value = c
+                option.textContent = c
+                cohorte_select.appendChild(option)
+            
+            # Actualizar slider info
+            update_slider_info(None)
+            console.log('✅ UI actualizada correctamente')
+            
+        except Exception as ex:
+            console.log(f'❌ Error en on_load: {ex}')
+            status = document.getElementById('fileStatus')
+            status.textContent = f'❌ Error procesando: {ex}'
             status.className = 'file-status error'
-            return
-        
-        # Guardar en store
-        data_store['df'] = df
-        data_store['df_mob'] = create_mob_dataframe(df)
-        data_store['df_pivot'] = data_store['df_mob'].pivot(
-            index='cohorte', columns='mob', values='mora_pct'
-        )
-        data_store['factors'], data_store['factors_detail'] = calculate_development_factors(
-            data_store['df_pivot']
-        )
-        
-        # Actualizar UI
-        status = document.getElementById('fileStatus')
-        status.textContent = f'✓ Archivo cargado: {file.name} ({len(df)} cohortes)'
-        status.className = 'file-status success'
-        
-        # Ocultar instrucciones
-        document.getElementById('instructions').style.display = 'none'
-        
-        # Mostrar panel de configuración
-        config_panel = document.getElementById('configPanel')
-        config_panel.style.display = 'block'
-        
-        # Poblar selector de cohortes
-        cohorte_select = document.getElementById('cohorteSelect')
-        cohortes = sorted(df.index.tolist(), reverse=True)
-        cohorte_select.innerHTML = ''
-        for c in cohortes:
-            option = document.createElement('option')
-            option.value = c
-            option.textContent = c
-            cohorte_select.appendChild(option)
-        
-        # Actualizar slider info
-        update_slider_info(None)
     
     file_reader.onload = create_proxy(on_load)
     file_reader.readAsText(file)
@@ -501,7 +523,7 @@ def update_slider_info(event):
     mob_value = document.getElementById('mobValue')
     mob_info = document.getElementById('mobInfo')
     
-    if not data_store['df_pivot']:
+    if data_store['df_pivot'] is None:
         return
     
     cohorte = cohorte_select.value
@@ -578,7 +600,7 @@ def handle_export_csv(event):
     
     csv_text = df_proy.to_csv(index=False)
     
-    blob = Blob.new([csv_text], {type: 'text/csv'})
+    blob = Blob.new([csv_text], {'type': 'text/csv'})
     url = URL.createObjectURL(blob)
     
     a = document.createElement('a')
