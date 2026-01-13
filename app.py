@@ -6,8 +6,8 @@ Procesamiento 100% en el navegador usando PyScript.
 
 import pandas as pd
 import numpy as np
-from js import document, window, Blob, URL, console, Object as JsObject
-from pyodide.ffi import create_proxy, to_js
+from js import document, window, Blob, URL, console
+from pyodide.ffi import create_proxy
 import json
 import io
 
@@ -206,7 +206,10 @@ def create_projection_plot():
         'template': 'plotly_white'
     }
     
-    window.Plotly.newPlot('plotProyeccion', to_js(traces, dict_converter=JsObject.fromEntries), to_js(layout, dict_converter=JsObject.fromEntries))
+    # Convertir a JSON y parsear en JS para obtener objetos nativos
+    traces_js = window.JSON.parse(json.dumps(traces))
+    layout_js = window.JSON.parse(json.dumps(layout))
+    window.Plotly.newPlot('plotProyeccion', traces_js, layout_js)
 
 
 def create_bar_chart():
@@ -241,7 +244,9 @@ def create_bar_chart():
         'barmode': 'group'
     }
     
-    window.Plotly.newPlot('plotBarras', to_js(traces, dict_converter=JsObject.fromEntries), to_js(layout, dict_converter=JsObject.fromEntries))
+    traces_js = window.JSON.parse(json.dumps(traces))
+    layout_js = window.JSON.parse(json.dumps(layout))
+    window.Plotly.newPlot('plotBarras', traces_js, layout_js)
 
 
 def create_factors_plot():
@@ -290,7 +295,9 @@ def create_factors_plot():
         }]
     }
     
-    window.Plotly.newPlot('plotFactores', to_js(traces, dict_converter=JsObject.fromEntries), to_js(layout, dict_converter=JsObject.fromEntries))
+    traces_js = window.JSON.parse(json.dumps(traces))
+    layout_js = window.JSON.parse(json.dumps(layout))
+    window.Plotly.newPlot('plotFactores', traces_js, layout_js)
 
 
 # ============================================================
